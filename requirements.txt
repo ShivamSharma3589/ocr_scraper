@@ -1,0 +1,18 @@
+# Direct dependencies
+requests==2.34.2          # SerpApi REST calls and image downloads
+pillow==12.3.0            # image loading + pixel sampling for the OCR colour split
+pytesseract==0.3.13       # wrapper around the tesseract binary (NOT the OCR engine)
+python-dotenv==1.2.3      # loads SERP_API_KEY out of .env
+
+# Transitive, pinned for reproducible installs
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.20
+packaging==26.3
+urllib3==2.8.0
+
+# NOTE: pytesseract is only a wrapper. The tesseract OCR engine itself is a
+# system package and cannot be installed by pip:
+#     Debian/Ubuntu   sudo apt install tesseract-ocr
+#     macOS           brew install tesseract
+#     Windows         https://github.com/UB-Mannheim/tesseract/wiki
