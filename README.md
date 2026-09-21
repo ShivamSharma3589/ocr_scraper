@@ -1,307 +1,318 @@
-# LookFantastic Ad Campaign Scraper
+# Ad Intelligence Pipeline
 
-Pulls the Google ads that **LookFantastic** is currently running in the **UK**, and
-recovers the actual ad text — headline, description, discount and promo code —
-which the API does not give you directly.
+Tracks the ads that UK beauty retailers are running across **Google Ads Transparency
+Center**, **Google Search** and **Meta (Facebook/Instagram)**, recovers the actual ad
+copy, and stores everything in MySQL so it can be queried over time.
 
 ---
 
-## ⚠️ Read this first: what this tool is and is not
+## ⚠️ Scope — read before running
 
-This is **not** a general-purpose ad scraper. It is hardcoded for one brand, one
-country and one date. Running it as-is gives you LookFantastic UK ads for
-17 September 2026 — nothing else.
+This is configured for specific retailers and a specific market. It is not a
+general-purpose scraper.
 
-| Setting | Current value | Meaning |
-|---|---|---|
-| Advertiser | `lookfantastic.com` | Only this domain's ads |
-| Country | `2826` | United Kingdom only |
-| Date | `20260917` → `20260918` | **One single day**, not "today" |
-| Ad formats | all | text, image and video |
-| Platforms | all | Search, Display, YouTube, Shopping |
-| Brand filter | 7 brands | Clinique, MAC, Tom Ford, Jo Malone, Bobbi Brown, Estee Lauder, Too Faced |
+| Setting | Value |
+|---|---|
+| Retailers | LookFantastic, John Lewis, Boots |
+| Region | United Kingdom (`GB`) |
+| Platforms | `google_ads`, `google_search`, `meta` |
+| Tracked brands | Clinique, MAC, Tom Ford, Jo Malone, Bobbi Brown, Estee Lauder, Too Faced |
+| Window | last N days, `--days` (default 1) |
 
-**The date does not update itself.** It is a fixed value in the code. If you run
-this next month without editing it, you will still get 17 September 2026 data.
-See [Changing what it scrapes](#changing-what-it-scrapes).
+TikTok was investigated and **deliberately excluded** — see [Known limitations](#known-limitations).
 
 ---
 
 ## Setup
 
-### 1. Install the OCR engine (this is not a pip package)
+### 1. OCR engine (not a pip package)
 
-Most of the ad text only exists as pixels inside a screenshot, so the tool needs
-a real OCR engine. `pip install` **cannot** provide this — install it separately:
+Google serves most of its ad copy as pixels, so a real OCR engine is required.
 
 ```bash
 sudo apt install tesseract-ocr
 ```
 
-macOS:
+macOS: `brew install tesseract` · Windows: <https://github.com/UB-Mannheim/tesseract/wiki>
 
-```bash
-brew install tesseract
-```
+Verify with `tesseract --version` (expect 5.x).
 
-Windows: download the installer from
-<https://github.com/UB-Mannheim/tesseract/wiki>
+### 2. Python packages
 
-Check it worked:
-
-```bash
-tesseract --version
-```
-
-You should see `tesseract 5.x`. If you skip this step, everything installs fine
-and then every ad fails at runtime.
-
-### 2. Install the Python packages
-
-Requires **Python 3.9 or newer** (tested on 3.12).
+Requires Python 3.10+ (tested on 3.12).
 
 ```bash
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ```
 
-### 3. Add your SerpApi key
+### 3. MySQL
 
-Create a file called `.env` in the project folder:
+Must be running and reachable. The database is created for you.
+
+### 4. Credentials
+
+Create `.env` in the project root:
 
 ```
-SERP_API_KEY=your_key_here
+SERP_API_KEY=your_serpapi_key
+SEARCH_API_KEYS=key1,key2,key3
+
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=root
+DB_NAME=ocr_scraper
 ```
 
-Get a key at <https://serpapi.com>. Each run costs roughly **1 credit per 100 ads**.
+`SEARCH_API_KEYS` is comma-separated and rotated automatically to spread credit usage.
 
-> **Never commit `.env` to git.** It contains a live billable key.
+### 5. Create the tables
+
+```bash
+./venv/bin/python -m adintel init-db
+```
 
 ---
 
 ## Running it
 
 ```bash
-./venv/bin/python extract.py
+./venv/bin/python -m adintel scrape --retailer lookfantastic --platform all
 ```
 
-That's the whole command. A full day is around **2,500 ads** and takes roughly
-**8–9 minutes**.
+| Flag | Meaning |
+|---|---|
+| `--retailer` | `lookfantastic`, `johnlewis`, `boots` |
+| `--platform` | `google_ads`, `google_search`, `meta`, or `all` |
+| `--days` | window size, default 1 |
+| `--limit` | stop after N creatives — **use this while testing** |
+| `--no-db` | write JSON only, skip MySQL |
 
-### Try a small run first
-
-Before committing to a full run, do 10 ads to check your setup works:
+Always test with a small limit first — a full day for one retailer is ~2,500 creatives:
 
 ```bash
-./venv/bin/python -c "import extract; extract.LIMIT = 10; extract.main()"
+./venv/bin/python -m adintel scrape --retailer lookfantastic --platform meta --limit 10
 ```
-
-This finishes in seconds and produces the same output structure.
 
 ---
 
-## What the script actually does
-
-Google's Ads Transparency Center tells you an ad *exists*, but not what it
-*says* — no headline, no description, no offer. This tool recovers that text.
+## What it does
 
 ```
-1. FETCH      Ask SerpApi for every LookFantastic ad in the date window.
-              Pages through 100 at a time until there are none left.
-                     ↓
-2. DOWNLOAD   Each ad is a screenshot of how it looked in Google search.
-              Downloads them into this run's image folder.
-                     ↓
-3. READ       Recover the text two ways:
-                • Some ads hide their exact text in the URL  → decoded, perfect
-                • The rest are pictures only                 → OCR'd
-                     ↓
-4. EXTRACT    Pull out promo codes (FLASH22) and discounts (20% Off),
-              and group ads that share a headline into campaigns.
-                     ↓
-5. FILTER     Save ads for your 7 tracked brands into a separate file.
+1. FETCH     Pull creatives for the retailer + window from each platform.
+                    ↓
+2. RECOVER   Get the ad copy, which differs per platform:
+               google_ads    → decode the URL blob, else download + OCR the screenshot
+               meta          → plain text from the API (no OCR needed)
+               google_search → plain text, filtered to the retailer's own domain
+                    ↓
+3. CLASSIFY  Tag each ad brand / category / generic, match tracked brands,
+             and pull out promo codes and discounts.
+                    ↓
+4. STORE     Write JSON files AND upsert into MySQL (idempotent).
 ```
 
-### How the text is recovered
+### Why two vendors
 
-Headlines are rendered in blue and descriptions in grey, so the tool reads the
-**pixel colour** of each word to tell them apart. Sitelinks (the extra links
-below an ad) are blue too, so only the *first* run of blue lines is treated as
-the headline.
+| Platform | Vendor | Reason |
+|---|---|---|
+| `google_ads` | SerpApi | Only SerpApi exposes the creative preview link whose blob yields exact text with no OCR |
+| `google_search`, `meta` | SearchAPI.io | SerpApi has no Meta engine |
 
 ---
 
-## Understanding the output
+## Output
 
-Every run creates three things, all stamped with the same timestamp so you can
-tell which files belong together:
+Every run writes JSON **and** rows to MySQL. JSON is kept as the raw record.
 
 ```
 output/
-├── img/20260918_073217/            ← the ad screenshots it downloaded
-├── transparency_data/20260918_073217.json   ← every ad + its extracted text
-└── filtered_brands/20260918_073217.json     ← only your 7 tracked brands
+├── img/<run_uid>/                                  downloaded screenshots
+├── transparency_data/<platform>/<retailer>_<run_uid>.json    everything fetched
+└── filtered_brands/<retailer>_<platform>_<run_uid>.json      tracked brands only
 ```
 
-### What you see on screen
+### Database
 
-```
-overlay=1  ocr=9  shopping=0  video=0  error=0
-deduped:   10 creatives -> 10 campaigns
-filtered:  output/filtered_brands/20260918_073217.json  (1 matched)
-  brands:  MAC=1
-```
+12 tables. Shared core plus per-platform detail tables, so cross-platform
+questions stay a single join.
 
-| Word | Meaning |
+| Table | Holds |
 |---|---|
-| `overlay` | Text read perfectly from the URL — no OCR needed |
-| `ocr` | Text read from the picture |
-| `shopping` / `video` | Ads that contain no text at all (see Limitations) |
-| `error` | Failed — usually a network problem |
-| `campaigns` | Ads grouped together by identical headline |
+| `retailers`, `brands` | reference data |
+| `runs` | one row per platform+retailer execution, with stats and credits used |
+| `creatives` | one row per unique ad, deduped on `(platform, platform_creative_id)` |
+| `creative_copy` | headline, description, landing URL, how it was extracted |
+| `creative_offers` | promo codes and discount percentages |
+| `creative_brands` | which tracked brands each ad mentions |
+| `creative_sitelinks` | the sub-links under an ad |
+| `creative_observations` | **which run saw which ad** — this is what makes change-tracking possible |
+| `meta_ad_details`, `google_search_ad_details` | platform-specific fields |
 
-### Inside the JSON
+Re-running the same window **updates** rather than duplicates.
 
-Each ad gets an `ocr_result` block holding everything that was recovered:
+### Useful queries
 
-```json
-{
-  "ad_creative_id": "CR00399539968365559809",
-  "first_shown": 1743597722,
-  "last_shown": 1789669595,
-  "ocr_result": {
-    "source": "ocr",
-    "headline": "Essie At LOOKFANTASTIC - Declining Discounts Now On",
-    "description": "Hurry! 30% Off & Declining 1% Every 2 Hours | Use Code: QUICK...",
-    "display_url": "www.lookfantastic.com/",
-    "sitelinks": [
-      { "title": "Varnish", "description": "Buy Essie Varnish from £10.95..." }
-    ],
-    "offer": {
-      "promo_codes": ["QUICK"],
-      "discounts": ["30% Off"]
-    }
-  }
-}
+Campaign mix per platform:
+
+```sql
+SELECT platform, campaign_type, COUNT(*) FROM creatives GROUP BY 1,2;
 ```
 
-The file also has a `campaigns` list at the top — the same ads grouped by
-headline, sorted by how many creatives share it. **Start there**, it is far
-easier to read than the raw ad list.
+Live promo codes:
 
-### Quick ways to look at it
+```sql
+SELECT o.promo_code, COUNT(*) ads FROM creative_offers o
+WHERE o.promo_code IS NOT NULL GROUP BY 1 ORDER BY 2 DESC;
+```
 
-Top 20 campaigns:
+Ads new since yesterday:
+
+```sql
+SELECT c.platform, cc.headline FROM creatives c
+JOIN creative_copy cc ON cc.creative_id = c.id
+WHERE c.first_seen_at >= CURDATE();
+```
+
+Which retailers advertise a given brand:
+
+```sql
+SELECT r.name, b.canonical_name, COUNT(*) FROM creative_brands cb
+JOIN creatives c ON c.id = cb.creative_id
+JOIN brands b ON b.id = cb.brand_id
+JOIN retailers r ON r.id = c.retailer_id
+GROUP BY 1,2 ORDER BY 3 DESC;
+```
+
+### Checking on things
 
 ```bash
-./venv/bin/python -c "import json,glob; d=json.load(open(sorted(glob.glob('output/transparency_data/*.json'))[-1])); [print(c['creative_count'], c['headline']) for c in d['campaigns'][:20]]"
+./venv/bin/python -m adintel status
 ```
 
-Which brands were found:
-
-```bash
-./venv/bin/python -c "import json,glob; d=json.load(open(sorted(glob.glob('output/filtered_brands/*.json'))[-1])); print(d['per_brand_counts'])"
-```
+Shows recent runs (with failures), creatives by retailer/platform/type, how fresh
+the data is, and credits consumed per platform.
 
 ---
 
-## Changing what it scrapes
+## Asking questions in English
 
-All of it lives at the top of `extract.py`.
+A local Ollama model turns a question into SQL, checks it is read-only, and runs it.
 
-### A different date
-
-```python
-START_DATE = "20260918"   # the day you want
-END_DATE   = "20260919"   # that day + 1  (end is exclusive)
+```bash
+./venv/bin/python -m adintel ask "which promo codes are running on meta?"
+./venv/bin/python -m adintel ask "how many brand campaigns per retailer?" --sql-only
 ```
 
-For a 30-day window, set `START_DATE` 30 days earlier and leave `END_DATE` as
-tomorrow.
+Ollama is installed under `~/.local/ollama` (no sudo needed). Start it with:
 
-### A different brand or country
-
-```python
-LIST_PARAMS = {
-    "text":   "boots.com",   # any advertiser domain
-    "region": "2826",        # 2826 = UK, 2724 = Spain, 2300 = Greece, 2840 = US
-    ...
-}
+```bash
+./scripts/start_ollama.sh
 ```
 
-### Different tracked brands
+It uses the GPU automatically — CUDA is detected on the RTX 4060 — and falls back
+to CPU if VRAM is short. The model is `qwen2.5-coder:7b` (~4.7 GB).
+Every generated query is rejected unless it starts with `SELECT`, contains no
+write keywords, and is a single statement.
+
+This is **text-to-SQL, not vector RAG** — the data is structured and the questions
+are analytical, so letting MySQL aggregate is both cheaper and more accurate.
+
+The prompt carries the schema, the table relationships and four worked examples,
+because a local 7B model otherwise over-joins (silently dropping rows) or invents
+column names. If a query still fails, the MySQL error is fed back for one retry —
+the response reports how many `attempts` were needed. Verify the `sql` field on
+anything important; a 7B is good at simple aggregates, weaker on complex joins.
+
+---
+
+## Configuration
+
+| What | Where |
+|---|---|
+| Retailers, domains, Meta page IDs, keywords | `adintel/config/retailers.py` |
+| Tracked brands and category terms | `adintel/config/brands.py` |
+| API keys, DB, workers, Ollama model | `adintel/config/settings.py` + `.env` |
+
+### Adding a retailer
 
 ```python
-BRANDS = {
-    "Clinique": r"\bcl[il1]n[il1][qg]ue\b",
-    "Your Brand": r"\byour\s+brand\b",
-}
+"newretailer": Retailer(
+    slug="newretailer",
+    name="New Retailer",
+    domain="newretailer.com",
+    meta_page_id="123456789",
+    search_keywords=("new retailer beauty",),
+),
 ```
 
-Patterns look odd on purpose. OCR misreads letters — `i` as `l` or `1`, `o` as
-`0`, `q` as `g` — so `[il1]` means "any of these". Accents and punctuation are
-already handled automatically, so `Estée Lauder`, `Estee Lauder` and `M.A.C` all
-match without extra work. Set `BRANDS = {}` to skip filtering.
+`meta_page_id` must be the retailer's own Facebook page ID. Keyword search will
+not find it reliably — Meta matches ad *text*, so other brands saying "available
+at X" drown out X itself.
 
-### Speed
+### Adding a brand
 
 ```python
-WORKERS = 8   # raise for a faster run, lower if the network struggles
+"Your Brand": r"\byour\s+brand\b",
 ```
+
+Patterns run against normalised text (accents stripped, punctuation flattened,
+lowercased), so `Estée Lauder` and `M.A.C` match without extra work. Use
+character classes like `[il1]` and `[o0]` to absorb OCR misreads.
+
+---
+
+## Tests
+
+```bash
+./venv/bin/python tests/test_extraction.py
+./venv/bin/python tests/test_insights_safety.py
+./venv/bin/python tests/test_ocr.py
+```
+
+`test_extraction.py` covers brand matching (including OCR misreads and
+false-positive guards), campaign classification, offer parsing, and domain/seller
+filtering — all against fixtures, so it costs no API credits.
+`test_insights_safety.py` proves the text-to-SQL guard blocks writes, DDL and
+stacked statements. `test_ocr.py` runs the real OCR over archived screenshots.
 
 ---
 
 ## Troubleshooting
 
-**Every ad fails with "network connection failed"**
+**Every Google ad fails with a connection error**
 
-Your DNS is probably blocking Google's ad server. Ad blockers, Pi-hole and some
-VPNs sinkhole it. Check:
+An ad blocker is sinkholing Google's image CDN. The run warns you up front. Check:
 
 ```bash
 getent hosts tpc.googlesyndication.com
 ```
 
-If it returns `0.0.0.0`, that's the problem — allowlist
-`tpc.googlesyndication.com` in whatever is blocking it. The script warns you
-about this before it starts.
+`0.0.0.0` means blocked — allowlist it in your DNS/VPN. Note only the OCR path
+breaks; overlay-decoded and Meta ads are unaffected.
 
-**`TesseractNotFoundError`**
+**`TesseractNotFoundError`** — OCR engine not installed, see Setup step 1.
 
-The OCR engine isn't installed. Go back to Setup step 1.
+**`google_search` returns 0 creatives** — normal. Text ads are auction-driven and
+often absent, especially on branded queries. Shopping listings are still captured.
 
-**Ads come back but headlines are empty**
-
-Normal for `shopping` and `video` ads — they genuinely contain no text.
+**Meta headline is `{{product.name}}`** — should not happen; dynamic ads are
+resolved from their cards. If you see it, the ad has no cards.
 
 ---
 
 ## Known limitations
 
-These are real constraints, not bugs to fix:
-
-- **Some text is unreadable, permanently.** Google truncates its own ad
-  previews with `...`, and on some ads a product photo physically covers the
-  words. That text does not exist in any retrievable form.
-- **Video ads have no text at all.** Nothing to extract.
-- **Image ads are usually not LookFantastic's.** They're shopping ads run by
-  price-comparison resellers (Productcaster, Klarna, Aldoor).
-- **Grouping by headline is weak.** Google auto-generates a near-unique headline
-  per ad, so ~2,500 ads collapse to only ~2,100 "campaigns". Grouping by promo
-  code instead (there are only ~30) gives a far more useful picture.
-- **One country, one day per run.** LookFantastic also advertises in Greece and
-  Spain; those need separate runs with a different `region`.
-- **The `ad_details` API is useless here.** It was tested against every ad and
-  returns no ad copy whatsoever. Don't spend credits on it.
-
----
-
-## Project files
-
-| File | Purpose |
-|---|---|
-| `extract.py` | The whole pipeline. This is the only thing you run. |
-| `config.py` | Reads your API key from `.env` |
-| `requirements.txt` | Python packages (**plus** the tesseract note) |
-| `.env` | Your SerpApi key — never commit this |
-| `output/` | Everything the runs produce |
+- **TikTok is excluded, deliberately.** LookFantastic is not a registered TikTok
+  advertiser — searched `GB`, worldwide, and by name variants, all zero. Keyword
+  search returns only influencer videos mentioning the brand, whose `title` is
+  hashtags rather than ad copy. There is nothing to collect.
+- **Google never gives the real landing URL**, only the display URL. Meta does.
+- **Some Google text is permanently unrecoverable** — Google truncates its own
+  previews with `...`, and on some ads a product photo physically covers the words.
+- **Boots has no `meta_page_id`.** Its Facebook page would not surface through
+  keyword search. Supply the ID to enable Meta for Boots.
+- **Google image-format ads usually are not the retailer's** — they are shopping
+  ads run by comparison services (Productcaster, Klarna, Aldoor).
+- **Credits are finite.** Runs record `credits_used`; always develop with `--limit`.

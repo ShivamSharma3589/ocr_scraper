@@ -8,3 +8,4 @@ __pycache__/
 
 # Scraper output - regenerated every run and large (150 MB+ of images per run)
 output/
+tests/

@@ -1,8 +1,9 @@
 # Direct dependencies
-requests==2.34.2          # SerpApi REST calls and image downloads
+requests==2.34.2          # SerpApi / SearchAPI calls and image downloads
 pillow==12.3.0            # image loading + pixel sampling for the OCR colour split
 pytesseract==0.3.13       # wrapper around the tesseract binary (NOT the OCR engine)
-python-dotenv==1.2.3      # loads SERP_API_KEY out of .env
+python-dotenv==1.2.3      # loads API keys and DB settings out of .env
+pymysql==1.2.3            # MySQL driver
 
 # Transitive, pinned for reproducible installs
 certifi==2026.7.22
@@ -16,3 +17,6 @@ urllib3==2.8.0
 #     Debian/Ubuntu   sudo apt install tesseract-ocr
 #     macOS           brew install tesseract
 #     Windows         https://github.com/UB-Mannheim/tesseract/wiki
+#
+# MySQL must be running and reachable using the DB_* values in .env.
+# Optional, for the insights command: https://ollama.com  +  ollama pull qwen2.5-coder:7b
