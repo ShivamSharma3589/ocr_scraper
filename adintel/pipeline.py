@@ -107,7 +107,7 @@ def _execute(platform, retailer, run_uid, start_date, end_date, limit,
 
     elif platform == "meta":
         client = SearchApiClient()
-        creatives = meta.fetch(client, retailer, limit)
+        creatives = meta.fetch(client, retailer, start_date, end_date, limit)
         credits_used = client.calls
 
     elif platform == "google_search":

@@ -1,6 +1,7 @@
 """Meta Ad Library via SearchAPI. Returns ad copy as plain text - no OCR."""
 
 import re
+from datetime import date
 
 from adintel.sources.base import Creative, to_datetime
 
@@ -58,7 +59,7 @@ def _copy_from_snapshot(snapshot):
     }
 
 
-def fetch(client, retailer, limit=None, max_pages=5):
+def fetch(client, retailer, start_date=None, end_date=None, limit=None, max_pages=5):
     if not retailer.meta_page_id:
         raise ValueError(f"{retailer.slug} has no meta_page_id configured")
 
@@ -70,7 +71,12 @@ def fetch(client, retailer, limit=None, max_pages=5):
             "page_id": retailer.meta_page_id,
             "country": retailer.region,
             "active_status": "active",
+            "sort_by": "most_recent",
         }
+        if start_date:
+            params["start_date"] = start_date.strftime("%Y-%m-%d")
+        if end_date:
+            params["end_date"] = min(end_date, date.today()).strftime("%Y-%m-%d")
         if token:
             params["next_page_token"] = token
 
