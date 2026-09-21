@@ -75,11 +75,13 @@ DB_NAME=ocr_scraper
 
 ---
 
-## Running with Docker (Windows)
+## Running with Docker
 
-You do **not** need MySQL or tesseract installed — both come from containers.
+You do **not** need MySQL, Python or tesseract installed — only Docker Desktop.
 
-### 1. Put your keys in `.env`
+### Setup — one command
+
+Put your keys in `.env` first:
 
 ```
 SERP_API_KEY=your_key
@@ -88,40 +90,61 @@ DB_PASSWORD=root
 DB_NAME=ocr_scraper
 ```
 
-Compose reads this file. Do not set `DB_HOST` — it is overridden to `mysql`.
-
-### 2. Start
+Then:
 
 ```bash
-docker compose up -d mysql
-docker compose run --rm adintel init-db
+docker compose up -d
 ```
 
-### 3. Scrape
+That builds the image, starts MySQL, waits for it to be ready, creates all the
+tables, and leaves the app running and idle. You only run this once.
+
+### Running commands
 
 ```bash
-docker compose run --rm adintel scrape --retailer lookfantastic --platform meta --limit 10
-docker compose run --rm adintel status
+docker compose exec adintel python -m adintel scrape --retailer lookfantastic --platform meta --limit 10
+docker compose exec adintel python -m adintel status
+docker compose exec adintel python -m adintel ask "which promo codes are running?"
 ```
 
-Output lands in `./output` on your host — the folder is mounted into the container.
+Output appears in `./output` on your machine.
 
-### Ollama stays on Windows, not in Docker
+### Code changes are live
 
-GPU passthrough into Docker on Windows needs the NVIDIA Container Toolkit and eats
-RAM. It is simpler to install [Ollama for Windows](https://ollama.com/download),
-which uses the GPU natively. The container reaches it through
-`host.docker.internal:11434`, already configured in `docker-compose.yml`.
+`adintel/`, `tests/` and `fixtures/` are mounted from your disk into the container.
+Edit a file, save, run the command again — the change is already active.
+
+**No rebuild needed for code changes.** Rebuild only when `requirements.txt`
+changes:
+
+```bash
+docker compose up -d --build
+```
+
+### Stopping and starting
+
+```bash
+docker compose down     # stop (data is kept)
+docker compose up -d    # start again
+```
+
+### Ollama stays outside Docker
+
+GPU passthrough into Docker on Windows needs the NVIDIA Container Toolkit and
+extra RAM. Install [Ollama for Windows](https://ollama.com/download) instead — it
+uses the GPU natively, and the container already reaches it through
+`host.docker.internal:11434`.
 
 ```bash
 ollama pull qwen2.5-coder:7b
-docker compose run --rm adintel ask "which promo codes are running?"
 ```
 
-### Connecting a DB client
+Ollama is only needed for the `ask` command; everything else works without it.
 
-MySQL is published on **port 3307** on the host (not 3306, to avoid clashing with
-any local install):
+### Connecting a database client
+
+MySQL is published on **port 3307** (not 3306, to avoid clashing with any local
+install):
 
 ```
 host: localhost   port: 3307   user: root   password: <DB_PASSWORD>

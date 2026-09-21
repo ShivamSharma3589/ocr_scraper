@@ -1,6 +1,7 @@
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
       MYSQL_DATABASE: ${DB_NAME:-ocr_scraper}
@@ -16,6 +17,7 @@ services:
 
   adintel:
     build: .
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
@@ -32,8 +34,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
+      - ./adintel:/app/adintel
+      - ./tests:/app/tests
+      - ./fixtures:/app/fixtures
       - ./output:/app/output
-    working_dir: /app
 
 volumes:
   mysql_data:
