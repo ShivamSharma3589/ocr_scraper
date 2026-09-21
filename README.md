@@ -75,7 +75,61 @@ DB_NAME=ocr_scraper
 
 ---
 
-## Running it
+## Running with Docker (Windows)
+
+You do **not** need MySQL or tesseract installed — both come from containers.
+
+### 1. Put your keys in `.env`
+
+```
+SERP_API_KEY=your_key
+SEARCH_API_KEYS=key1,key2,key3
+DB_PASSWORD=root
+DB_NAME=ocr_scraper
+```
+
+Compose reads this file. Do not set `DB_HOST` — it is overridden to `mysql`.
+
+### 2. Start
+
+```bash
+docker compose up -d mysql
+docker compose run --rm adintel init-db
+```
+
+### 3. Scrape
+
+```bash
+docker compose run --rm adintel scrape --retailer lookfantastic --platform meta --limit 10
+docker compose run --rm adintel status
+```
+
+Output lands in `./output` on your host — the folder is mounted into the container.
+
+### Ollama stays on Windows, not in Docker
+
+GPU passthrough into Docker on Windows needs the NVIDIA Container Toolkit and eats
+RAM. It is simpler to install [Ollama for Windows](https://ollama.com/download),
+which uses the GPU natively. The container reaches it through
+`host.docker.internal:11434`, already configured in `docker-compose.yml`.
+
+```bash
+ollama pull qwen2.5-coder:7b
+docker compose run --rm adintel ask "which promo codes are running?"
+```
+
+### Connecting a DB client
+
+MySQL is published on **port 3307** on the host (not 3306, to avoid clashing with
+any local install):
+
+```
+host: localhost   port: 3307   user: root   password: <DB_PASSWORD>
+```
+
+---
+
+## Running it (native, no Docker)
 
 ```bash
 ./venv/bin/python -m adintel scrape --retailer lookfantastic --platform all
