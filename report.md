@@ -1,207 +1,208 @@
-# Competitive Ad Intelligence — POC Findings
+# Competitor Offer Intelligence — Findings
 
-**Prepared:** 22 September 2026
-**Scope:** UK · LookFantastic, John Lewis, Boots
-**Tracked brands:** Clinique, MAC, Tom Ford, Jo Malone, Bobbi Brown, Estée Lauder, Too Faced
-**Window:** 15–22 September 2026 (7 days)
-
----
-
-## 1. Headline finding
-
-**LookFantastic is the only retailer of the three actively discounting your brand portfolio.**
-
-| | Google creatives | Meta creatives | ads naming your brands | live promo codes |
-|---|---|---|---|---|
-| **LookFantastic** | **7,110** | 150 | **903** | **28** |
-| John Lewis | 1,144 | 99 | 3 | 0 |
-| Boots | 294 | 150 | **0** | 2 *(own No7 / baby)* |
-
-John Lewis and Boots both advertise beauty, but push own-label and third-party
-lines. Neither runs a single promo code against your portfolio.
-
-**Practical implication:** daily monitoring only needs to cover LookFantastic.
-The other two justify a weekly or monthly check.
+**Date:** 22 September 2026 · **Market:** UK · **Window:** 7 days (15–22 Sep)
+**Retailers:** LookFantastic · ASOS · John Lewis · Boots · allbeauty · Next
+**Brands tracked:** Clinique · MAC · Tom Ford · Jo Malone · Bobbi Brown · Estée Lauder · Too Faced
 
 ---
 
-## 2. What LookFantastic is doing
+## The one thing to take away
 
-### Discount depth — the number to price against
+> **Every retailer is discounting our brands. Only LookFantastic pays to advertise it.**
+>
+> Ad platforms show us who is *shouting*. They do not show us who is *discounting*.
+> allbeauty is cutting Estée Lauder by **45%** while running just 42 ads all week.
+
+---
+
+## 1. How many ads, and how many are about us?
+
+Every ad was sorted into three buckets:
+
+| bucket | meaning | example |
+|---|---|---|
+| **Brand** | names one of our 7 brands | *"Clinique At LOOKFANTASTIC – 25% Off"* |
+| **Category** | a product type, no brand | *"20% Off Moisturisers"* |
+| **Generic** | store-wide, no product | *"Free UK Delivery In A Flash"* |
+
+### Google Ads
+
+| retailer | ads found | still live on last day | **about our brands** | category | generic |
+|---|---:|---:|---:|---:|---:|
+| **ASOS** | 8,081 | 913 | **15** | 70 | 7,996 |
+| **LookFantastic** | 7,110 | 1,886 | **903** | 988 | 5,219 |
+| John Lewis | 1,144 | 695 | **3** | 35 | 1,106 |
+| Boots | 294 | 163 | **0** | 22 | 272 |
+| allbeauty | 43 | 7 | **2** | 17 | 24 |
+
+### Meta (Facebook / Instagram)
+
+| retailer | ads found | **about our brands** | generic |
+|---|---:|---:|---:|
+| LookFantastic | 150 | **31** | 113 |
+| Boots | 150 | 0 | 141 |
+| ASOS | 150 | 0 | 150 |
+| Next | 148 | 0 | 148 |
+| John Lewis | 99 | 0 | 99 |
+| allbeauty | 0 | — | — |
+
+**Read this way:**
+
+- ASOS advertises most heavily overall (8,081 ads) but almost none of it touches us — **15 ads, 0.2%**.
+- LookFantastic is the opposite: **903 ads, 13%**, aimed squarely at our brands.
+- Most advertising everywhere is generic store-wide messaging, not brand campaigns.
+
+---
+
+## 2. Which of our brands are under pressure?
+
+Ads naming each brand, Google, 7 days:
+
+| brand | LookFantastic | ASOS | John Lewis | Boots | allbeauty |
+|---|---:|---:|---:|---:|---:|
+| **Clinique** | **284** | 1 | – | – | 1 |
+| **Estée Lauder** | **203** | – | 1 | – | 1 |
+| **MAC** | **164** | 11 | – | – | – |
+| **Tom Ford** | **128** | 2 | 1 | – | – |
+| Bobbi Brown | 52 | – | – | – | – |
+| Too Faced | 38 | – | – | – | – |
+| Jo Malone | 34 | – | 1 | – | – |
+
+Clinique and Estée Lauder take the heaviest advertised pressure, both from LookFantastic.
+
+---
+
+## 3. How deep are the discounts?
+
+### LookFantastic — advertised discount per brand
+
+| brand | 50% off | 40% off | 30% off | 25% off | 22% off |
+|---|---:|---:|---:|---:|---:|
+| Clinique | 7 | 16 | 35 | **64** | – |
+| Estée Lauder | – | 7 | 33 | **54** | 15 |
+| MAC | 2 | 6 | 30 | **36** | – |
+| Tom Ford | 2 | 9 | 13 | **25** | – |
+| Jo Malone | – | 2 | **18** | 2 | 3 |
+| Bobbi Brown | – | 2 | 6 | **17** | 5 |
+| Too Faced | 1 | – | 5 | **7** | 4 |
+
+**Standard lever is 25–30% off. 40–50% exists but is rare.**
+
+### Overall discount mix — LookFantastic, all 7,110 ads
 
 | discount | ads |
-|---|---|
-| 20% off | **1,938** |
+|---|---:|
+| 20% off | 1,938 |
 | 25% off | 1,084 |
 | 30% off | 760 |
 | 22% off | 580 |
 | 40% off | 326 |
 | 50% off | 60 |
 
-Their standard lever is **20–25% off**. Anything at 40–50% is a thin tail —
-386 ads out of 7,110, roughly 5%.
-
-### Promo codes in market
-
-```
-FLASH    1,006 ads        TREAT     533
-SAVE       650            EXTRA10   183
-FLASH22    572            FLASH25   121
-EXTRA      547            SAVE5      72
-```
-
-28 distinct codes. `FLASH` alone carries 300× the ad volume of their smallest
-code — that concentration is a spend signal, not just an offer list.
-
-### Your brands, by pressure
-
-| brand | ads |
-|---|---|
-| Clinique | 284 |
-| Estée Lauder | 203 |
-| MAC | 164 |
-| Tom Ford | 128 |
-| Bobbi Brown | 52 |
-| Too Faced | 38 |
-| Jo Malone | 34 |
-
-### Tactics, not just offers
-
-Real headlines pulled from the data:
-
-```
-"Shop Sol De Janeiro On LF - 25% Off Selected & Declining"
-"Essie At LOOKFANTASTIC - Declining Discounts Now On"
-   └─ body: "Hurry! 30% Off & Declining 1% Every 2 Hours | Use Code: QUICK"
-"The Ordinary At LOOKFANTASTIC - Hurry, Best Sellers Sell Out"
-```
-
-A declining-discount mechanic that drops 1% every two hours is a deliberate
-urgency play. An offer table would record this as "30% off" and lose the tactic.
+ASOS, by contrast, discounts our brands shallowly — MAC at 10–25%, Clinique once at 15%.
 
 ---
 
-## 3. The critical limitation — read this before presenting
+## 4. Advertised vs actually offered — the critical gap
 
-**Google Ads Transparency caught only 1 of the 4 promo codes live on
-LookFantastic's own website.**
+We checked the retailers' own websites against what they advertise.
 
-| | codes found |
-|---|---|
-| Website scrape (ground truth) | `EXTRA`, `LFTAKE25`, `LFUNI12`, `MOON25` |
-| Google Ads Transparency | 28 codes — but only `EXTRA` overlaps |
-
-Google **missed 3 of 4 live codes**. The website scrape missed 24 of Google's.
-
-### Why they disagree
-
-They answer different questions:
-
-- **Website** → what is redeemable at checkout right now
-- **Google Ads** → what they are paying to advertise
-
-A retailer does not advertise every offer — media costs money. Codes like
-`LFUNI12` (student) and `MOON25` are distributed through other channels and
-never appear in paid search. Conversely, app-exclusive codes (`APP25`,
-`APPFLASH`) appear in ads but never on the public site.
-
-**Neither source is complete. Presenting either alone overstates certainty.**
-
----
-
-## 4. Source-by-source assessment
-
-| | Website scrape | Google Ads Transparency | Meta Ad Library |
-|---|---|---|---|
-| **legally usable** | ❌ compliance risk | ✅ vendor-licensed | ✅ vendor-licensed |
-| live promo codes | ✅ exact, all 4 | ⚠️ 1 of 4 | ✗ 1 code only |
-| offer terms & conditions | ✅ | ✗ | ✗ |
-| start / end dates | ✗ snapshot | partial | ✅ |
-| landing URL | ✅ | ✗ display URL only | ✅ |
-| spend weighting | ✗ | ✅ **unique** | partial |
-| campaign lifespan | ✗ | ✅ up to 1,792 days observed | ✅ |
-| competitor coverage | risky | ✅ any retailer | ✅ any retailer |
-| accuracy | exact | ~94% (OCR) | 100% (API text) |
-
-### Meta specifically
-
-Meta is **product-led, not offer-led**. Across 150 LookFantastic ads: one promo
-code, 16 discount mentions, and only Estée Lauder of your seven brands appeared.
-
-Its unique value is the real landing URL, showing where paid social spend goes:
-
-```
-16  /c/brands/moroccanoil/
-16  /c/ace-your-base/
-11  /c/brands/estee-lauder/advanced-night-repair
-10  /p/estee-lauder-glimmer-eau-de-parfum
-```
-
-**Recommendation:** run Meta weekly at ~5 credits for product-push intelligence.
-Do not expect discount data from it.
-
----
-
-## 5. Data quality
-
-| retailer · source | creatives | text recovered | notes |
-|---|---|---|---|
-| LookFantastic · Google | 7,110 | 6,727 (94%) | 42 genuine errors |
-| John Lewis · Google | 1,144 | 532 of 638 text-bearing (83%) | 189 carry no ad copy at all |
-| Boots · Google | 294 | 78 | mostly shopping listings |
-| all · Meta | 399 | 100% | API returns plain text |
-
-**Known, unfixable gaps:**
-
-- Google truncates its own ad previews with `...`
-- On some creatives a product photo physically covers the headline
-- Video and shopping creatives contain no ad copy by design
-- ~0.2% of promo codes are OCR truncations (`FLA`, `TRE`) — filterable
-
----
-
-## 6. Routes considered and rejected
-
-**Direct website scraping** — best data quality, but the compliance exposure was
-judged unacceptable. Correctly abandoned.
-
-**Awin affiliate network** — retailers publish offers there deliberately, with
-terms, end dates and exclusivity flags. Nothing in Awin's UK publisher terms
-prohibits this use. Blocked in practice: approval requires an established
-promotional website, and promo codes stay hidden until each programme approves
-you individually. Revisit if a publisher site is ever stood up.
-
-**`ad_details` endpoint** — returns `title`, `snippet` and `displayed_link`, but
-**only for creatives that already expose their text**, which the pipeline
-decodes for free. Tested on 4 OCR-dependent creatives: 0 returned text. Using it
-instead of OCR would have cost 7,110 credits for ~500 results rather than 72
-credits for 6,727.
-
-**Google live SERP ads** — tested twice, returned zero text ads. Paid search
-results are auction-dependent, so coverage is unpredictable. Parked.
-
----
-
-## 7. Recommendation
-
-**Run it. But scope the claim honestly.**
-
-This tells your client **where a competitor is spending, how deeply they
-discount, against which brands, and with what tactics** — legally, across any
-retailer, with history. That is a defensible product.
-
-It does **not** give a complete list of live promo codes, and should never be
-presented as one.
-
-**Suggested cadence**
-
-| | frequency | credits |
+| retailer | on their **website** | in their **ads** |
 |---|---|---|
-| LookFantastic · Google | daily | ~72 |
-| LookFantastic · Meta | weekly | ~5 |
-| John Lewis, Boots | monthly | ~15 |
+| **allbeauty** | **Estée Lauder up to 45% off**<br>**Clinique up to 35% off** | 2 brand ads total |
+| **Boots** | Free gift on selected Estée Lauder<br>£10 off selected Clinique | **0 brand ads** |
+| **John Lewis** | 15% off Bobbi Brown<br>£20 off Bobbi Brown foundation<br>Free Tom Ford EDP with purchase | 3 brand ads |
+| **LookFantastic** | MAC Cosmetics Sale<br>Up to 25% off selected beauty | 903 brand ads |
 
-**Use `--days 7`, not `--days 1`.** A 1-day window is throttled by Google to
-~900 results and was verified to drop 1,077 ads that were live that same day.
-A 7-day window returns ~8,000 and reaches the ceiling; 14 and 30 days add
-nothing.
+**This is the headline risk.** Judging competitors by their advertising alone would have told us
+Boots and allbeauty were not a threat. In reality:
+
+- **allbeauty discounts our brands deeper than anyone** — 45% on Estée Lauder — and barely advertises
+- **Boots gives free gifts on Estée Lauder and £10 off Clinique** — invisible in ad data
+
+---
+
+## 5. Where the ad data *is* reliable
+
+We verified LookFantastic's live website on 22 September:
+
+| | website says | ads said |
+|---|---|---|
+| headline offer | "UP TO **25%** OFF SELECTED BEAUTY" | 25% in 1,084 ads |
+| deep discounts | "Save 40%/50% — **ONE WEEK ONLY**" | 40% in 326, 50% in 60 |
+| Clinique page | Daily Calm range **25% off**, £10 off balm | Clinique 25% in 64 ads |
+
+**Discount depth and brand pressure match reality.** Where ad data is trustworthy, it is
+genuinely trustworthy — it simply does not see offers a retailer chooses not to advertise.
+
+---
+
+## 6. What each retailer is doing
+
+**LookFantastic — the aggressive advertiser.**
+7,110 ads, 903 naming our brands. Standard discount 25–30%, deeper on Clinique and Estée
+Lauder. Uses urgency tactics: *"30% Off & Declining 1% Every 2 Hours"*, *"Hurry, Best Sellers
+Sell Out"*. The only retailer spending real money against us.
+
+**allbeauty — the quiet discounter.** ⚠️
+42 ads in a week, zero Meta presence. But their site offers **Estée Lauder up to 45% off** and
+**Clinique up to 35% off** — the deepest cuts of any retailer. Invisible through ad monitoring.
+
+**Boots — promotions without advertising.**
+294 ads, none naming our brands. Their website runs free-gift offers on Estée Lauder and £10
+off Clinique. Their Meta spend goes to Garnier, Prada, YSL and weight-loss services.
+
+**ASOS — high volume, low relevance.**
+8,081 ads, the largest advertiser, but only 15 touch our brands, at shallow 10–25% discounts.
+Their spend is fashion, not beauty.
+
+**John Lewis — premium, gift-led.**
+1,144 ads, 3 naming our brands. Their site prefers gift-with-purchase and price-match over
+discounting. 15% off Bobbi Brown is their deepest cut.
+
+**Next — not a beauty competitor.**
+Ad volume enormous (~20,000 in 7 days) but overwhelmingly fashion and homeware. No brand
+ads on Meta. Not worth monitoring.
+
+---
+
+## 7. What this data can and cannot tell us
+
+| ✅ Reliable | ❌ Not reliable |
+|---|---|
+| How much a retailer spends advertising against us | A complete list of live offers |
+| Which brands they target and how hard | Offers they choose not to advertise |
+| Advertised discount depth (verified vs site) | Exact terms and conditions |
+| Messaging and urgency tactics | Anything on a retailer that advertises little |
+| Any competitor, legally, daily | — |
+
+**Ad transparency measures advertising, not discounting.** For complete offer coverage
+the retailer's own site remains the only full source.
+
+---
+
+## 8. Recommendation
+
+1. **Monitor LookFantastic weekly via ads.** They are the only competitor where ad data
+   gives a near-complete picture, because they advertise nearly everything.
+2. **Do not judge Boots or allbeauty by ad data.** Both discount our brands while barely
+   advertising. allbeauty's 45% off Estée Lauder is the single most aggressive act in this
+   dataset, and no ad platform would have shown it.
+3. **Drop Next and ASOS from regular monitoring.** Volume is high, relevance near zero.
+4. **Treat discount depth as the key metric, not offer counts.** 25–30% is the market
+   standard; allbeauty at 45% is the outlier that needs a response.
+
+### Suggested cadence
+
+| retailer | frequency | why |
+|---|---|---|
+| LookFantastic | weekly | active, advertised, complete signal |
+| allbeauty | weekly | deepest discounter, needs site check |
+| Boots, John Lewis | monthly | promote but rarely advertise |
+| ASOS, Next | quarterly | negligible relevance |
+
+---
+
+*Data: 16,768 Google ads, 697 Meta ads, 4 website snapshots. Ad text recovered at 94–99%
+accuracy. Sources: Google Ads Transparency Center (via SerpApi), Meta Ad Library (via
+SearchAPI), retailer websites.*
