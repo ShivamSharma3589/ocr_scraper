@@ -26,11 +26,32 @@ RETAILERS = {
         meta_page_id="145210795501787",
         search_keywords=("john lewis beauty", "john lewis clinique"),
     ),
+    "allbeauty": Retailer(
+        slug="allbeauty",
+        name="allbeauty",
+        domain="allbeauty.com",
+        meta_page_id="159134384258861",
+        search_keywords=("allbeauty clinique", "allbeauty perfume"),
+    ),
+    "asos": Retailer(
+        slug="asos",
+        name="ASOS",
+        domain="asos.com",
+        meta_page_id="10936503735",
+        search_keywords=("asos beauty", "asos face and body"),
+    ),
+    "next": Retailer(
+        slug="next",
+        name="Next",
+        domain="next.co.uk",
+        meta_page_id="94971738769",
+        search_keywords=("next beauty", "next fragrance"),
+    ),
     "boots": Retailer(
         slug="boots",
         name="Boots",
         domain="boots.com",
-        meta_page_id=None,
+        meta_page_id="137917343831",
         search_keywords=("boots beauty", "boots clinique"),
     ),
 }

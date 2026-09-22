@@ -6,7 +6,9 @@ else falls back to downloading the rendered screenshot and reading it.
 """
 
 import os
+import re
 import socket
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -14,9 +16,22 @@ import requests
 
 from adintel.config import settings
 from adintel.extraction import ocr, overlay
+from adintel.logging_setup import get as get_logger
 from adintel.sources.base import Creative, to_datetime
 
 PLATFORM = "google_ads"
+
+
+ERROR_PAGE_RE = re.compile(
+    r"that.?s an error|error\s*\d{3}|try again later|that.?s all we know", re.I
+)
+
+
+def is_error_page(copy):
+    """Google serves 500/404 pages as images with HTTP 200, so they download
+    cleanly and only reveal themselves once read."""
+    text = " ".join(filter(None, [copy.get("raw_text"), copy.get("headline")]))
+    return bool(text) and bool(ERROR_PAGE_RE.search(text))
 
 
 def image_host_blocked():
@@ -48,7 +63,11 @@ def _download(url, destination):
 
 
 def fetch(client, retailer, start_date, end_date, limit=None):
+    log = get_logger()
     creatives, token, seen = [], None, set()
+    page = 0
+
+    log.info(f"fetching {retailer.slug} {start_date} -> {end_date}")
 
     while True:
         params = {
@@ -66,6 +85,11 @@ def fetch(client, retailer, start_date, end_date, limit=None):
         batch = data.get("ad_creatives") or []
         if not batch:
             break
+
+        page += 1
+        total = (data.get("search_information") or {}).get("total_results")
+        log.info(f"  page {page:3}  +{len(batch):3}"
+                 + (f"  (api reports ~{total} available)" if page == 1 and total else ""))
 
         for ad in batch:
             creative_id = ad.get("ad_creative_id")
@@ -92,13 +116,21 @@ def fetch(client, retailer, start_date, end_date, limit=None):
 
         token = (data.get("serpapi_pagination") or {}).get("next_page_token")
         if not token:
+            log.info(f"  pagination complete after {page} pages")
             break
 
     return creatives
 
 
 def extract_copy(creatives, image_dir, workers=None):
+    log = get_logger()
     os.makedirs(image_dir, exist_ok=True)
+
+    needs_image = sum(1 for c in creatives if c.media_url and not c.preview_link)
+    log.info(f"extracting copy from {len(creatives)} creatives "
+             f"({needs_image} need download + OCR)")
+    progress = {"done": 0, "ocr": 0, "overlay": 0, "no_text": 0, "error": 0}
+    lock = threading.Lock()
 
     def resolve(creative):
         try:
@@ -108,12 +140,28 @@ def extract_copy(creatives, image_dir, workers=None):
                 )
             elif creative.preview_link:
                 creative.copy = overlay.text_copy(creative.preview_link)
+                if not creative.copy and not creative.media_url:
+                    param, _ = overlay.decode(creative.preview_link)
+                    creative.copy = {
+                        "extraction_source": "no_text",
+                        "note": f"preview carries only an '{param}' blob - no ad copy exists",
+                    }
 
             if not creative.copy and creative.media_url:
                 path = os.path.join(image_dir, f"{creative.platform_creative_id}.png")
-                blob = _download(creative.media_url, path)
-                creative.copy = ocr.extract(blob)
-                if creative.copy:
+                for attempt in range(1, 4):
+                    blob = _download(creative.media_url, path)
+                    creative.copy = ocr.extract(blob)
+                    if not creative.copy or not is_error_page(creative.copy):
+                        break
+                    creative.copy = None
+                    time.sleep(attempt)
+                else:
+                    creative.copy = {
+                        "extraction_source": "error",
+                        "error": "google served an error page instead of the creative",
+                    }
+                if creative.copy and creative.copy.get("extraction_source") == "ocr":
                     creative.copy["image_path"] = path
 
         except Exception as exc:
@@ -124,9 +172,19 @@ def extract_copy(creatives, image_dir, workers=None):
 
         if not creative.copy:
             creative.copy = {"extraction_source": "error", "error": "no copy recovered"}
+
+        with lock:
+            progress["done"] += 1
+            source = creative.copy.get("extraction_source", "error")
+            progress[source] = progress.get(source, 0) + 1
+            if progress["done"] % 100 == 0 or progress["done"] == len(creatives):
+                log.info(f"  {progress['done']}/{len(creatives)}  "
+                         f"ocr={progress['ocr']} overlay={progress['overlay']} "
+                         f"no_text={progress['no_text']} errors={progress['error']}")
         return creative
 
     with ThreadPoolExecutor(max_workers=workers or settings.WORKERS) as pool:
         list(pool.map(resolve, creatives))
 
+    log.info("extraction complete")
     return creatives

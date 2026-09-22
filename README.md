@@ -201,14 +201,43 @@ Always test with a small limit first — a full day for one retailer is ~2,500 c
 
 ## Output
 
-Every run writes JSON **and** rows to MySQL. JSON is kept as the raw record.
+Every run writes JSON **and** rows to MySQL. JSON is organised retailer-first, so
+everything about one retailer lives together:
 
 ```
 output/
-├── img/<run_uid>/                                  downloaded screenshots
-├── transparency_data/<platform>/<retailer>_<run_uid>.json    everything fetched
-└── filtered_brands/<retailer>_<platform>_<run_uid>.json      tracked brands only
+├── boots/
+│   ├── ads_transparency/
+│   │   ├── 2026-09-21_16-05-32.json       all creatives from that run
+│   │   ├── filtered/
+│   │   │   └── 2026-09-21_16-05-32.json   only the tracked brands
+│   │   └── images/
+│   │       └── 2026-09-21_16-05-32/       screenshots from that run
+│   └── meta_ads/
+│       ├── 2026-09-21_16-11-48.json
+│       └── filtered/
+│           └── 2026-09-21_16-11-48.json
+└── johnlewis/
+    └── google_search/
+        ├── 2026-09-21_16-20-15.json
+        └── filtered/
+            └── 2026-09-21_16-20-15.json
 ```
+
+Filenames are `YYYY-MM-DD_HH-MM-SS.json`, so sorting alphabetically sorts by time —
+the newest run is always last.
+
+A run and its filtered output **share the same timestamp**, so you can always tell
+which filtered file came from which run. `filtered/` sits inside each platform
+folder rather than at retailer level, so Google and Meta results never mix.
+
+Images live under `ads_transparency/` because only Google produces them.
+
+| platform flag | folder |
+|---|---|
+| `google_ads` | `ads_transparency` |
+| `google_search` | `google_search` |
+| `meta` | `meta_ads` |
 
 ### Database
 

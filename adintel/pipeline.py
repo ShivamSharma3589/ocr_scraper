@@ -10,12 +10,24 @@ from adintel.classification.brands import match as match_brands
 from adintel.config import settings
 from adintel.config.retailers import get_retailer
 from adintel.extraction import offers
+from adintel.logging_setup import get as get_logger
+from adintel.logging_setup import setup as setup_logging
 from adintel.sources import google_search, google_transparency, meta
 from adintel.sources.base import window
 from adintel.sources.client import SearchApiClient, SerpApiClient
 from adintel.storage import repository
 
 PLATFORMS = ("google_ads", "google_search", "meta")
+
+PLATFORM_FOLDERS = {
+    "google_ads": "ads_transparency",
+    "google_search": "google_search",
+    "meta": "meta_ads",
+}
+
+
+def run_folder(retailer, platform):
+    return settings.OUTPUT_DIR / retailer.slug / PLATFORM_FOLDERS[platform]
 
 
 def _enrich(creatives):
@@ -68,10 +80,16 @@ def run(platform, retailer_slug, days=1, limit=None, persist=True):
         raise SystemExit(f"Unknown platform '{platform}'. Known: {', '.join(PLATFORMS)}")
 
     retailer = get_retailer(retailer_slug)
-    run_uid = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_uid = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     start_date, end_date = window(days)
     credits_used = 0
     warnings = []
+
+    log, log_path = setup_logging(run_uid, platform, retailer.slug)
+    log.info("=" * 64)
+    log.info(f"run {run_uid}  {retailer.slug}  {platform}")
+    log.info(f"window {start_date} -> {end_date}  limit={limit}  persist={persist}")
+    log.info("=" * 64)
 
     connection, retailer_pk, run_pk = _open_run(
         retailer, platform, run_uid, start_date, end_date, persist
@@ -81,6 +99,7 @@ def run(platform, retailer_slug, days=1, limit=None, persist=True):
         return _execute(platform, retailer, run_uid, start_date, end_date, limit,
                         connection, retailer_pk, run_pk, warnings)
     except Exception as exc:
+        log.error(f"RUN FAILED: {type(exc).__name__}: {exc}")
         if connection and run_pk:
             repository.finish_run(connection, run_pk, "failed", 0, credits_used,
                                   {}, None, f"{type(exc).__name__}: {exc}")
@@ -92,16 +111,17 @@ def run(platform, retailer_slug, days=1, limit=None, persist=True):
 
 def _execute(platform, retailer, run_uid, start_date, end_date, limit,
              connection, retailer_pk, run_pk, warnings):
+    log = get_logger()
     credits_used = 0
 
     if platform == "google_ads":
         blocked = google_transparency.image_host_blocked()
         if blocked:
             warnings.append(f"image CDN unreachable: {blocked} - OCR will fail")
-            print(f"WARNING: {warnings[-1]}")
+            log.warning(f"WARNING: {warnings[-1]}")
         client = SerpApiClient()
         creatives = google_transparency.fetch(client, retailer, start_date, end_date, limit)
-        image_dir = settings.OUTPUT_DIR / "img" / run_uid
+        image_dir = run_folder(retailer, platform) / "images" / run_uid
         google_transparency.extract_copy(creatives, image_dir)
         credits_used = client.calls
 
@@ -139,16 +159,14 @@ def _execute(platform, retailer, run_uid, start_date, end_date, limit,
         "creatives": records,
     }
 
-    json_path = _write_json(
-        settings.OUTPUT_DIR / "transparency_data" / platform,
-        f"{retailer.slug}_{run_uid}.json",
-        payload,
-    )
+    base = run_folder(retailer, platform)
+    json_path = _write_json(base, f"{run_uid}.json", payload)
+    log.info(f"wrote {json_path}")
 
     matched = [r for r in records if r["copy"].get("brands")]
     _write_json(
-        settings.OUTPUT_DIR / "filtered_brands",
-        f"{retailer.slug}_{platform}_{run_uid}.json",
+        base / "filtered",
+        f"{run_uid}.json",
         {
             "run_uid": run_uid,
             "platform": platform,
@@ -161,6 +179,7 @@ def _execute(platform, retailer, run_uid, start_date, end_date, limit,
 
     saved = 0
     if connection and run_pk:
+        log.info("saving to mysql ...")
         saved = repository.save_creatives(
             connection, run_pk, retailer_pk, creatives,
             repository.brand_ids(connection),
@@ -169,6 +188,10 @@ def _execute(platform, retailer, run_uid, start_date, end_date, limit,
             connection, run_pk, "success", len(creatives),
             credits_used, dict(stats), json_path,
         )
+        log.info(f"saved {saved} creatives to mysql")
+
+    log.info(f"done: {len(creatives)} creatives, {credits_used} credits, "
+             f"{dict(stats)}")
 
     return {
         "run_uid": run_uid,

@@ -209,7 +209,7 @@ def save_creatives(connection, run_pk, retailer_pk, creatives, brand_lookup):
                 cursor.execute("DELETE FROM creative_offers WHERE creative_id=%s", (creative_pk,))
                 for offer in offers:
                     cursor.execute(
-                        """INSERT INTO creative_offers
+                        """INSERT IGNORE INTO creative_offers
                              (creative_id, promo_code, discount_text, discount_pct)
                            VALUES (%s,%s,%s,%s)""",
                         (creative_pk, offer.get("promo_code"),

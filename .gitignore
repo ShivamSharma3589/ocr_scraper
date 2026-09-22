@@ -7,5 +7,7 @@ __pycache__/
 *.py[cod]
 
 # Scraper output - regenerated every run and large (150 MB+ of images per run)
-output/
+output*/
 tests/
+logs/
+awin/
